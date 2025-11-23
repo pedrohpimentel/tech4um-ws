@@ -6,7 +6,7 @@ import java.util.Optional;
 
 //Iremos tratar da implementação dos métodos, quando criamos as classes do service.
 public class UserRepository extends MongoRepository<User, String> {
-    Optional<User> findByEmail(String email);
+    public Optional<User> findByEmail(String email);
     Optional<User> findByUsername(String username);
 
 }

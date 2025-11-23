@@ -1,9 +1,0 @@
-server:
-  # Porta onde o servidor Spring Boot irá rodar.
-  port: 8080
-
-spring:
-  data:
-    mongodb:
-      # Use o URI de conexão (mais flexível)
-      uri: mongodb+srv://pedrohenriquepimenteldev05_db_user:w3jIZkRfN9TFcFbe@tech4um.xavklyo.mongodb.net/?appName=tech4um
