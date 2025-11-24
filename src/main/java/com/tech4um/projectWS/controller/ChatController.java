@@ -16,37 +16,47 @@ public class ChatController {
 
     private static final Logger logger = LoggerFactory.getLogger(ChatController.class);
 
-    private final SimpMessagingTemplate  messagingTemplate;
+    private final SimpMessagingTemplate messagingTemplate;
     private final MessageService messageService;
 
-    // SimpMessagingTemplate é a ferramenta que usamos para enviar mensagens
-    // de volta para o broker ou para usuários específicos.
     public ChatController(SimpMessagingTemplate messagingTemplate, MessageService messageService) {
         this.messagingTemplate = messagingTemplate;
         this.messageService = messageService;
-}
+    }
+
     // Mapeia a mensagem de entrada do cliente: /app/chat.send
     @MessageMapping("/chat.send")
-    // @Payload é o corpo da mensagem (o objeto Message que o cliente envia)
     public void sendMessage(@Payload Message message, Principal principal) {
 
-        // 1. Loga a mensagem recebida
-        logger.info("Mensagem recebida de {}: {}", principal.getName(), message.getContent());
-
-        // 2. Define o ID do remetente (garantindo que o remetente seja quem está logado)
+        // Garante que o remetente seja quem está autenticado
         message.setSenderId(principal.getName());
 
-        // 3. Persiste a mensagem no MongoDB
+        // Salva a mensagem no MongoDB
         Message savedMessage = messageService.save(message);
 
-        // 4. Roteamento (Apenas para mensagens públicas neste dia)
+        // --- Lógica de Roteamento ---
         if (savedMessage.getType() == Message.MessageType.PUBLIC) {
 
+            // Roteamento Público: /topic/forum.{forumId}
             String destination = "/topic/forum." + savedMessage.getForumId();
-            logger.info("Enviando mensagem pública para o tópico: {}", destination);
+            logger.info("Enviando PUBLIC para: {}", destination);
 
-            // Envia a mensagem salva (com ID e Timestamp) para todos que estão inscritos no tópico do fórum
             messagingTemplate.convertAndSend(destination, savedMessage);
+
+        } else if (savedMessage.getType() == Message.MessageType.PRIVATE) {
+
+            // Roteamento Privado: /user/{recipientId}/private
+            // O SimpMessagingTemplate adiciona automaticamente o prefixo /user/
+            String destination = savedMessage.getRecipientId();
+            logger.info("Enviando PRIVATE para o usuário: {}", destination);
+
+            // O segundo argumento é o tópico personalizado (Ex: /private).
+            // A rota final será: /user/{recipientId}/private
+            messagingTemplate.convertAndSendToUser(
+                    destination,
+                    "/private",
+                    savedMessage
+            );
         }
     }
 }
