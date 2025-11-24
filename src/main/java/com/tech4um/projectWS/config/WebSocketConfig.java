@@ -16,8 +16,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         // O cliente se conectará a 'ws://localhost:8080/ws'
         registry.addEndpoint("/ws")
                 // Permite conexões de todos os domínios (ajustar em produção)
-                .setAllowedOriginPatterns("*")
-                .withSockJS(); // Fallback para navegadores antigos
+                .setAllowedOriginPatterns("*");
     }
 
     // Configura o Message Broker
