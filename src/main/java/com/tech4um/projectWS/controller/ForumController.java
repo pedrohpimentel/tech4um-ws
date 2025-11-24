@@ -23,7 +23,7 @@ public class ForumController {
     }
 
     // POST /api/forums
-    // Cria um novo fórum
+    //Cria um novo fórum2
     @PostMapping
     public ResponseEntity<ForumResponse> createForum(@Valid @RequestBody ForumRequest request){
         //Mapeia DTO para o Modelo (Apenas no Controller/Service)
