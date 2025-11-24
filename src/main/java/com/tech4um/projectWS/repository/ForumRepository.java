@@ -2,7 +2,10 @@ package com.tech4um.projectWS.repository;
 
 import com.tech4um.projectWS.model.Forum;
 import org.springframework.data.mongodb.repository.MongoRepository;
+import java.util.Optional;
 
-//Iremos tratar da implementação dos métodos, quando criamos as classes do service.
-public class ForumRepository extends MongoRepository<Forum,String> {
+public interface ForumRepository extends MongoRepository<Forum,String> {
+
+    //Método customizado para checar se o nome já existe
+    Optional<Forum> findByName(String name);
 }
