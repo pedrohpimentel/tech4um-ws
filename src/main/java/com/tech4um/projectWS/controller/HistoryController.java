@@ -23,7 +23,10 @@ public class HistoryController {
     // GET /api/history/forum/{forumId}
     // Retorna todas as mensagens públicas de um fórum específico
     @GetMapping("/forum/{forumId}")
-    public ResponseEntity<List<Message>> getForumHistory(@PathVariable String forumId) {
+    // Altere o tipo do Path Variable de String para Long
+    public ResponseEntity<List<Message>> getForumHistory(@PathVariable Long forumId) {
+
+        //  O tipo agora corresponde ao método do Service (Long)
         List<Message> messages = messageService.findChatHistoryByForumId(forumId);
 
         // Retorna a lista de mensagens (já ordenada por timestamp no service)

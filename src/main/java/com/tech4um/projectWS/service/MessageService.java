@@ -26,7 +26,8 @@ public class MessageService {
     }
 
     //Busca o histórico de mensagens de um fórum
-    public List<Message> findChatHistoryByForumId(String forumId) {
+    // Mudar o tipo do parâmetro de String para Long
+    public List<Message> findChatHistoryByForumId(Long forumId) {
         return messageRepository.findByForumIdOrderByTimestampAsc(forumId);
     }
 

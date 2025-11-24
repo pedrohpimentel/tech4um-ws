@@ -7,7 +7,7 @@ import lombok.Data;
 @Builder
 public class ForumResponse {
 
-    private String id;
+    private Long id;
     private String name;
     private String description;
     private Long createdAt;

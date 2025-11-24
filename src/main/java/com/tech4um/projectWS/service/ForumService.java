@@ -28,6 +28,7 @@ public class ForumService {
         logger.info("Tentando criar novo fórum: {}", forum.getName());
 
         //Regra de Negócio: Fóruns devem ter nomes únicos
+        // O método findByName DEVE existir na interface ForumRepository
         Optional<Forum> existingForum = forumRepository.findByName(forum.getName());
         if (existingForum.isPresent()){
             throw new ConflictException("Já existe um fórum com o nome: " + forum.getName());
@@ -41,13 +42,15 @@ public class ForumService {
     }
 
     //Lógica: Encontrar por ID
-    public Forum findById(String id){
+    // 💡 CORRIGIDO: O ID agora é Long
+    public Forum findById(Long id){
         return forumRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Fórum não encontrado para a exclusão com ID: " + id));
     }
 
     //Lógica: Excluir
-    public void deleteForum(String id){
+    public void deleteForum(Long id){
+        // O método existsById deve existir e aceitar Long
         if (!forumRepository.existsById(id)){
             throw new ResourceNotFoundException("Fórum não encontrado para exclusão com ID: " + id);
         }

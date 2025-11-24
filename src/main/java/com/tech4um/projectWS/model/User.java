@@ -1,39 +1,63 @@
 package com.tech4um.projectWS.model;
 
-/* Aqui irá representar a estrutura de dados interna,
-ou seja, como os dados são persistidos no MongoDB.*/
+/* Esta classe representa a entidade (tabela) 'users' no MySQL,
+e implementa UserDetails para o Spring Security. */
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.Data;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.data.mongodb.core.index.Indexed;
+
 import java.util.Collection;
 import java.util.Collections;
 
 
 @Data
-@Document(collection = "users")
+@Entity // Marca a classe como uma tabela no banco de dados relacional (JPA)
+@Table(name = "users")
 public class User implements UserDetails { // Necessário para o Spring Security
 
+    // CHAVE PRIMÁRIA JPA: Usamos Long e auto-geração
     @Id
-    private String id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // Auto-incremento gerenciado pelo MySQL
+    private Long id; // ID agora é Long
 
-    @Indexed(unique = true)
+    // COLUNAS JPA: Define campos com restrições (ex: UNIQUE)
+
+    // username deve ser único
+    @Column(unique = true, nullable = false)
     private String username;
 
-    @Indexed(unique = true)
+    // email deve ser único (muito importante para o login)
+    @Column(unique = true, nullable = false)
     private String email;
 
+    @Column(nullable = false)
     private String password;
 
-    // Simplificação dos métodos UserDetails (Assumimos true para não-expiração/bloqueio)
+    // Métodos UserDetails (Mantidos, pois são requisitos do Spring Security)
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return Collections.emptyList();
     }
 
+    @Override
+    public String getPassword() {
+        return password;
+    }
+
+    // getUsername retorna o e-mail, conforme o padrão de autenticação
+    @Override
+    public String getUsername(){
+        return email;
+    }
+
+    // Simplificações dos métodos UserDetails
     @Override
     public boolean isAccountNonExpired() {
         return true;
@@ -52,10 +76,5 @@ public class User implements UserDetails { // Necessário para o Spring Security
     @Override
     public boolean isEnabled() {
         return true;
-    }
-
-    @Override
-    public String getUsername(){
-        return email;
     }
 }
