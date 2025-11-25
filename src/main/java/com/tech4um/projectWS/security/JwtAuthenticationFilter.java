@@ -59,9 +59,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     // Método para extrair o JWT do header
     private String getJwtFromRequest(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
+        System.out.println("Authorization" + bearerToken);
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
             return bearerToken.substring(7); // Remove "Bearer "
         }
         return null;
     }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        // Se a rota começar com /api/auth/, pule este filtro
+        return request.getServletPath().startsWith("/api/auth");
+    }
+
 }

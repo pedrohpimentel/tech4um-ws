@@ -1,5 +1,6 @@
 package com.tech4um.projectWS.config;
 
+import com.tech4um.projectWS.security.JwtAuthenticationEntryPoint;
 import com.tech4um.projectWS.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,9 +24,13 @@ import java.util.Arrays;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    // 💡 NOVO: Declaração para o EntryPoint (lidar com 401)
+    private final JwtAuthenticationEntryPoint unauthorizedHandler;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+    // 💡 Construtor Atualizado: Injeta o JwtAuthenticationEntryPoint
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, JwtAuthenticationEntryPoint unauthorizedHandler) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.unauthorizedHandler = unauthorizedHandler;
     }
 
     @Bean
@@ -38,7 +43,7 @@ public class SecurityConfig {
         return authenticationConfiguration.getAuthenticationManager();
     }
 
-    // Configuração do CORS
+    // Configuração do CORS (Mantida)
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
@@ -57,12 +62,15 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable()) // Desabilita CSRF
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                // 💡 NOVO: Configura o EntryPoint para retornar 401 Unauthorized em falhas de autenticação
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint(unauthorizedHandler))
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // CRUCIAL: Sem sessão
                 .authorizeHttpRequests(auth -> auth
                         // Rotas de autenticação são públicas
                         .requestMatchers("/api/auth/**").permitAll()
-                        // Rotas WebSocket (serão definidas no Dia 4)
+                        // Rotas WebSocket
                         .requestMatchers("/ws/**").permitAll()
                         // Todas as outras rotas exigem autenticação
                         .anyRequest().authenticated())

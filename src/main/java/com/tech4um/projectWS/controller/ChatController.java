@@ -68,7 +68,7 @@ public class ChatController {
         if (savedMessage.getType() == Message.MessageType.PUBLIC) {
 
             // Roteamento Público: /topic/forum.{forumId}
-            // 💡 Nota: getForumId() é Long, mas a string de destino STOMP precisa de String
+            // Nota: getForumId() é Long, mas a string de destino STOMP precisa de String
             String destination = "/topic/forum." + savedMessage.getForumId().toString();
             messagingTemplate.convertAndSend(destination, savedMessage);
 

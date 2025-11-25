@@ -15,10 +15,19 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.AuthenticationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+// ALTERAÇÃO : Adiciona a anotação @CrossOrigin para permitir requisições de origem cruzada
+// A rota de login usa POST.
 @RestController
 @RequestMapping("/api/auth")
+@CrossOrigin(origins = {"http://localhost:3000", "http://127.0.0.1:3000"}, methods = {RequestMethod.POST, RequestMethod.GET, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS})
 public class AuthController {
+
+    // Adiciona logger para ver erros no console
+    private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
     private final AuthenticationManager authenticationManager;
     private final UserRepository userRepository;
@@ -35,11 +44,20 @@ public class AuthController {
     // Rota de LOGIN
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
-        // Tenta autenticar o usuário com as credenciais fornecidas
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        loginRequest.getEmail(),
-                        loginRequest.getPassword()));
+        Authentication authentication;
+        try {
+            // Tenta autenticar o usuário com as credenciais fornecidas
+            authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            loginRequest.getEmail(),
+                            loginRequest.getPassword()));
+        } catch (AuthenticationException e) {
+            // 💡 AJUSTE CRÍTICO: Loga a exceção exata (BadCredentials ou UsernameNotFound)
+            logger.error("Falha na autenticação para o e-mail {}: {}", loginRequest.getEmail(), e.getMessage());
+
+            // Retorna 401 Unauthorized se a autenticação falhar
+            return new ResponseEntity(e.getMessage(), HttpStatus.UNAUTHORIZED);
+        }
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
@@ -47,6 +65,7 @@ public class AuthController {
         String jwt = tokenProvider.generateToken(authentication);
 
         // Retorna o token e os detalhes básicos do usuário
+        // O cast para User agora funciona, pois sua entidade implementa UserDetails
         User user = (User) authentication.getPrincipal();
 
         LoginResponse response = LoginResponse.builder()
@@ -58,7 +77,7 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
-    // Rota de REGISTRO
+    // Rota de REGISTRO (Mantida, pois está correta)
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@Valid @RequestBody RegisterRequest registerRequest) {
         // TRATAMENTO DE ERRO: 409 Conflict
