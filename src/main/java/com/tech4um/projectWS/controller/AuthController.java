@@ -1,11 +1,14 @@
 package com.tech4um.projectWS.controller;
 
+import com.tech4um.projectWS.dto.ForgotPasswordRequest;
 import com.tech4um.projectWS.dto.LoginRequest;
 import com.tech4um.projectWS.dto.LoginResponse;
 import com.tech4um.projectWS.dto.RegisterRequest;
+import com.tech4um.projectWS.dto.ResetPasswordRequest;
 import com.tech4um.projectWS.model.User;
 import com.tech4um.projectWS.repository.UserRepository;
 import com.tech4um.projectWS.security.JwtTokenProvider;
+import com.tech4um.projectWS.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,26 +22,28 @@ import org.springframework.security.core.AuthenticationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// ALTERAÇÃO : Adiciona a anotação @CrossOrigin para permitir requisições de origem cruzada
-// A rota de login usa POST.
 @RestController
 @RequestMapping("/api/auth")
 @CrossOrigin(origins = {"http://localhost:3000", "http://127.0.0.1:3000"}, methods = {RequestMethod.POST, RequestMethod.GET, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS})
 public class AuthController {
 
-    // Adiciona logger para ver erros no console
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
     private final AuthenticationManager authenticationManager;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider tokenProvider;
+    //  Injeção do UserService
+    private final UserService userService;
 
-    public AuthController(AuthenticationManager authenticationManager, UserRepository userRepository, PasswordEncoder passwordEncoder, JwtTokenProvider tokenProvider) {
+    // Incluindo o UserService
+    public AuthController(AuthenticationManager authenticationManager, UserRepository userRepository,
+                          PasswordEncoder passwordEncoder, JwtTokenProvider tokenProvider, UserService userService) {
         this.authenticationManager = authenticationManager;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.tokenProvider = tokenProvider;
+        this.userService = userService;
     }
 
     // Rota de LOGIN
@@ -46,26 +51,17 @@ public class AuthController {
     public ResponseEntity<LoginResponse> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
         Authentication authentication;
         try {
-            // Tenta autenticar o usuário com as credenciais fornecidas
             authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             loginRequest.getEmail(),
                             loginRequest.getPassword()));
         } catch (AuthenticationException e) {
-            // 💡 AJUSTE CRÍTICO: Loga a exceção exata (BadCredentials ou UsernameNotFound)
             logger.error("Falha na autenticação para o e-mail {}: {}", loginRequest.getEmail(), e.getMessage());
-
-            // Retorna 401 Unauthorized se a autenticação falhar
             return new ResponseEntity(e.getMessage(), HttpStatus.UNAUTHORIZED);
         }
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
-
-        // Gera o token JWT
         String jwt = tokenProvider.generateToken(authentication);
-
-        // Retorna o token e os detalhes básicos do usuário
-        // O cast para User agora funciona, pois sua entidade implementa UserDetails
         User user = (User) authentication.getPrincipal();
 
         LoginResponse response = LoginResponse.builder()
@@ -77,10 +73,9 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
-    // Rota de REGISTRO (Mantida, pois está correta)
+    // Rota de REGISTRO (ATUALIZADA com o campo Role)
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@Valid @RequestBody RegisterRequest registerRequest) {
-        // TRATAMENTO DE ERRO: 409 Conflict
         if (userRepository.findByEmail(registerRequest.getEmail()).isPresent()) {
             return new ResponseEntity<>("O e-mail já está em uso!", HttpStatus.CONFLICT);
         }
@@ -88,12 +83,36 @@ public class AuthController {
         User user = new User();
         user.setEmail(registerRequest.getEmail());
         user.setUsername(registerRequest.getUsername());
+        // CRÍTICO: Define o papel do usuário. Se o DTO não enviar, o padrão é USER.
+        user.setRole(registerRequest.getRole());
 
-        // Criptografa a senha com BCrypt!
         user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
-
         userRepository.save(user);
 
         return new ResponseEntity<>("Usuário registrado com sucesso!", HttpStatus.CREATED);
+    }
+
+    // NOVA ROTA 1: Geração de Token de Redefinição
+    @PostMapping("/forgot-password")
+    public ResponseEntity<String> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        // A lógica de geração de token e checagem de e-mail está no UserService
+        String token = userService.createPasswordResetToken(request.getEmail());
+
+        // Retorna sucesso para evitar vazamento de dados, mesmo que o e-mail não exista.
+        return ResponseEntity.ok("Se o e-mail estiver cadastrado, um link de redefinição será enviado.");
+    }
+
+    //  NOVA ROTA 2: Execução da Redefinição de Senha
+    @PostMapping("/reset-password")
+    public ResponseEntity<String> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        // A lógica de validação de token, expiração e atualização de senha está no UserService
+        boolean success = userService.resetPassword(request.getToken(), request.getNewPassword());
+
+        if (success) {
+            return ResponseEntity.ok("Senha redefinida com sucesso. Faça login com a nova senha.");
+        } else {
+            // Token inválido ou expirado
+            return new ResponseEntity<>("O token de redefinição é inválido ou expirou.", HttpStatus.BAD_REQUEST);
+        }
     }
 }

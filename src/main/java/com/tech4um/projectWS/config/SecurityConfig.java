@@ -16,18 +16,18 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity; // Import necessário
 
 import java.util.Arrays;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity(securedEnabled = true) // Habilita o @Secured nas classes/métodos
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    // 💡 NOVO: Declaração para o EntryPoint (lidar com 401)
     private final JwtAuthenticationEntryPoint unauthorizedHandler;
 
-    // 💡 Construtor Atualizado: Injeta o JwtAuthenticationEntryPoint
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, JwtAuthenticationEntryPoint unauthorizedHandler) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.unauthorizedHandler = unauthorizedHandler;
@@ -47,7 +47,6 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // Permite o domínio do Next.js (local). Adicione o domínio de produção aqui.
         configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000", "http://127.0.0.1:3000"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
@@ -62,7 +61,7 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable()) // Desabilita CSRF
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                // 💡 NOVO: Configura o EntryPoint para retornar 401 Unauthorized em falhas de autenticação
+                // Configura o EntryPoint para retornar 401 Unauthorized em falhas de autenticação
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint(unauthorizedHandler))
                 .sessionManagement(session -> session
@@ -70,8 +69,13 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Rotas de autenticação são públicas
                         .requestMatchers("/api/auth/**").permitAll()
+
+                        // CRÍTICO: Rota /api/users requer ROLE_USER ou ROLE_ADMIN
+                        .requestMatchers("/api/users/**").hasAnyRole("USER", "ADMIN")
+
                         // Rotas WebSocket
                         .requestMatchers("/ws/**").permitAll()
+
                         // Todas as outras rotas exigem autenticação
                         .anyRequest().authenticated())
                 // Adiciona o filtro JWT antes do filtro de autenticação padrão do Spring

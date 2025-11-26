@@ -34,11 +34,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
                 // 1. Obtém o email (userId) do token
-                // CORREÇÃO: Usando o nome correto do método da classe JwtTokenProvider
                 String userEmail = tokenProvider.getUserIdFromJWT(jwt);
 
                 // 2. Carrega os detalhes do usuário
                 UserDetails userDetails = userDetailsService.loadUserByUsername(userEmail);
+
+                // 💡 LOG DE DEBUG CRÍTICO: Mostra as permissões carregadas do objeto User
+                System.out.println("DEBUG (Authorities): Permissões carregadas do usuário: " + userDetails.getAuthorities());
 
                 // 3. Cria o objeto de Autenticação
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
@@ -47,10 +49,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 // Injeta a autenticação no contexto
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+
+                // 💡 LOG DE DEBUG CRÍTICO: Confirma que o token foi injetado como autenticado
+                System.out.println("DEBUG (Context): Token injetado com status isAuthenticated(): " + authentication.isAuthenticated());
             }
         } catch (Exception ex) {
             // Logar o erro (ex: JWT inválido, expirado)
-            // System.err.println("Could not set user authentication in security context: " + ex.getMessage());
+            System.err.println("JWT ERROR (Auth Filter): Falha ao autenticar token: " + ex.getMessage());
         }
 
         filterChain.doFilter(request, response);
@@ -59,7 +64,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     // Método para extrair o JWT do header
     private String getJwtFromRequest(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
-        System.out.println("Authorization" + bearerToken);
+        // Log atualizado para melhor leitura e para garantir que o token está chegando
+        System.out.println("Authorization: " + bearerToken);
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
             return bearerToken.substring(7); // Remove "Bearer "
         }

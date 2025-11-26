@@ -1,49 +1,62 @@
 package com.tech4um.projectWS.model;
 
-/* Esta classe representa a entidade (tabela) 'users' no MySQL,
-e implementa UserDetails para o Spring Security. */
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Data;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Collections;
 
-
+/* Esta classe representa a entidade (tabela) 'users' no MySQL,
+e implementa UserDetails para o Spring Security. */
 @Data
-@Entity // Marca a classe como uma tabela no banco de dados relacional (JPA)
+@Entity
 @Table(name = "users")
-public class User implements UserDetails { // Necessário para o Spring Security
+public class User implements UserDetails {
 
-    // CHAVE PRIMÁRIA JPA: Usamos Long e auto-geração
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY) // Auto-incremento gerenciado pelo MySQL
-    private Long id; // ID agora é Long
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-    // COLUNAS JPA: Define campos com restrições (ex: UNIQUE)
-
-    // username deve ser único
     @Column(unique = true, nullable = false)
     private String username;
 
-    // email deve ser único (muito importante para o login)
     @Column(unique = true, nullable = false)
     private String email;
 
     @Column(nullable = false)
     private String password;
 
-    // Métodos UserDetails (Mantidos, pois são requisitos do Spring Security)
+    //  Papel do usuário (Para Autorização Baseada em Papéis)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role", nullable = false)
+    private Role role = Role.USER; // Padrão definido como USER
+
+    //  Token de redefinição de senha (Para Esqueci Minha Senha)
+    @Column(name = "reset_password_token")
+    private String resetPasswordToken;
+
+    //  Data de expiração do token de redefinição
+    @Column(name = "token_expiry_date")
+    private LocalDateTime tokenExpiryDate;
+
+    // --- Implementação UserDetails ATUALIZADA ---
+
+    // Retorna o papel do usuário (ROLE_USER ou ROLE_ADMIN) para o Spring Security
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return Collections.emptyList();
+        // Converte o Role (Enum) para o formato exigido pelo Spring Security (ex: "ROLE_USER")
+        return Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role.name()));
     }
 
     @Override
@@ -51,13 +64,13 @@ public class User implements UserDetails { // Necessário para o Spring Security
         return password;
     }
 
-    // getUsername retorna o e-mail, conforme o padrão de autenticação
     @Override
     public String getUsername(){
+        // CRÍTICO: Se você usa o e-mail como login, o getUsername deve retornar o e-mail
         return email;
     }
 
-    // Simplificações dos métodos UserDetails
+    // Simplificações dos métodos UserDetails (Mantidas)
     @Override
     public boolean isAccountNonExpired() {
         return true;
@@ -76,5 +89,11 @@ public class User implements UserDetails { // Necessário para o Spring Security
     @Override
     public boolean isEnabled() {
         return true;
+    }
+
+    // Enum para definir os papéis possíveis
+    public enum Role {
+        USER,
+        ADMIN
     }
 }
