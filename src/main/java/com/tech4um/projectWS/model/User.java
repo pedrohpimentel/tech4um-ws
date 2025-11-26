@@ -42,11 +42,11 @@ public class User implements UserDetails {
     @Column(name = "role", nullable = false)
     private Role role = Role.USER; // Padrão definido como USER
 
-    //  Token de redefinição de senha (Para Esqueci Minha Senha)
+    // Token de redefinição de senha (Para Esqueci Minha Senha)
     @Column(name = "reset_password_token")
     private String resetPasswordToken;
 
-    //  Data de expiração do token de redefinição
+    // Data de expiração do token de redefinição
     @Column(name = "token_expiry_date")
     private LocalDateTime tokenExpiryDate;
 

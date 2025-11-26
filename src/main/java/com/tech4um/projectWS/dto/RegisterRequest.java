@@ -1,6 +1,6 @@
 package com.tech4um.projectWS.dto;
 
-import com.tech4um.projectWS.model.User.Role; // 💡 Importação da Role do User
+import com.tech4um.projectWS.model.User.Role; // Importação da Role do User
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

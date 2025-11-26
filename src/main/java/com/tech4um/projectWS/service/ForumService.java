@@ -42,7 +42,7 @@ public class ForumService {
     }
 
     //Lógica: Encontrar por ID
-    // 💡 CORRIGIDO: O ID agora é Long
+    // O ID agora é Long
     public Forum findById(Long id){
         return forumRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Fórum não encontrado para a exclusão com ID: " + id));

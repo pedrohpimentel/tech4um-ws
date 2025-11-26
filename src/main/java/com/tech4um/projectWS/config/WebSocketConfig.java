@@ -31,5 +31,4 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         // Prefixo para mensagens privadas
         registry.setUserDestinationPrefix("/user");
     }
-
 }

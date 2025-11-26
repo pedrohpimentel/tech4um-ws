@@ -13,12 +13,12 @@ import lombok.Data;
 @Table(name = "forums") // Nome da tabela no MySQL
 public class Forum {
 
-    // 1. CHAVE PRIMÁRIA JPA: Usamos Long e auto-geração para o MySQL
+    // CHAVE PRIMÁRIA JPA: Usamos Long e auto-geração para o MySQL
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY) // Auto-incremento gerenciado pelo MySQL
     private Long id; // O tipo muda de String (MongoDB) para Long (JPA)
 
-    // 2. COLUNAS JPA: Define a restrição de unicidade
+    // COLUNAS JPA: Define a restrição de unicidade
 
     // name deve ser único (replicando @Indexed(unique = true))
     @Column(unique = true, nullable = false)

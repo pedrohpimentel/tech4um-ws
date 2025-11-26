@@ -20,11 +20,11 @@ public class ChatController {
 
     private final SimpMessagingTemplate messagingTemplate;
     private final MessageService messageService;
-    private final UserService userService; // 💡 NOVO: Injetar UserService
+    private final UserService userService; // Injetar UserService
 
     public ChatController(SimpMessagingTemplate messagingTemplate,
                           MessageService messageService,
-                          UserService userService) { // 💡 Adicionar UserService ao construtor
+                          UserService userService) { // Adicionar UserService ao construtor
         this.messagingTemplate = messagingTemplate;
         this.messageService = messageService;
         this.userService = userService;

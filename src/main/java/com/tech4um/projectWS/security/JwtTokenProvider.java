@@ -35,7 +35,7 @@ public class JwtTokenProvider {
     // Gera o token JWT após o Login
     public String generateToken(Authentication authentication){
 
-        // 💡 Ajuste: Obtém o username (email) do objeto UserDetails, que é o Principal
+        // Ajuste: Obtém o username (email) do objeto UserDetails, que é o Principal
         String userEmail = ((UserDetails) authentication.getPrincipal()).getUsername();
 
         Date now  = new Date();
@@ -69,12 +69,12 @@ public class JwtTokenProvider {
             Jwts.parserBuilder().setSigningKey(key()).build().parse(authToken);
             return true;
         } catch (SignatureException ex) {
-            // 🛑 ERRO MAIS CRÍTICO: CHAVE INVÁLIDA
+            // ERRO MAIS CRÍTICO: CHAVE INVÁLIDA
             System.err.println("JWT ERROR: Assinatura inválida! Chave Secreta errada ou Token adulterado.");
         } catch (MalformedJwtException ex) {
             System.err.println("JWT ERROR: Token malformado.");
         } catch (ExpiredJwtException ex) {
-            // 🛑 ERRO CRÍTICO: TOKEN EXPIRADO
+            // ERRO CRÍTICO: TOKEN EXPIRADO
             System.err.println("JWT ERROR: Token expirado em: " + ex.getClaims().getExpiration());
         } catch (UnsupportedJwtException ex) {
             System.err.println("JWT ERROR: Token não suportado.");

@@ -102,11 +102,11 @@ public class UserController {
         }
     }
 
-    /**
+    /*
      * NOVO ENDPOINT: Exclui um usuário por ID. Rota: DELETE /api/users/{id}
      * Implementa uma regra de segurança para garantir que apenas o proprietário da conta
      * ou um ADMIN possa executar a exclusão.
-     *
+
      * @param id O ID do usuário a ser excluído.
      * @param currentUser O objeto do usuário logado (fornecido pelo Spring Security).
      * @return 204 No Content se excluído, 404 Not Found ou 403 Forbidden.
@@ -120,10 +120,10 @@ public class UserController {
         if (userOptional.isPresent()) {
             User userToDelete = userOptional.get();
 
-            // 1. Verificação de Autorização: O usuário logado é o proprietário da conta?
+            // Verificação de Autorização: O usuário logado é o proprietário da conta?
             boolean isOwner = userToDelete.getEmail().equals(currentUser.getUsername());
 
-            // 2. Verificação de Admin (simples)
+            // Verificação de Admin (simples)
             boolean isAdmin = currentUser.getAuthorities().stream()
                     .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 

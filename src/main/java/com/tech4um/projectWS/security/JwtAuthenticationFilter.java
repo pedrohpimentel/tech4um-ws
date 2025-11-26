@@ -33,16 +33,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String jwt = getJwtFromRequest(request);
 
             if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
-                // 1. Obtém o email (userId) do token
+                //  Obtém o email (userId) do token
                 String userEmail = tokenProvider.getUserIdFromJWT(jwt);
 
-                // 2. Carrega os detalhes do usuário
+                // Carrega os detalhes do usuário
                 UserDetails userDetails = userDetailsService.loadUserByUsername(userEmail);
 
-                // 💡 LOG DE DEBUG CRÍTICO: Mostra as permissões carregadas do objeto User
+                // LOG DE DEBUG CRÍTICO: Mostra as permissões carregadas do objeto User
                 System.out.println("DEBUG (Authorities): Permissões carregadas do usuário: " + userDetails.getAuthorities());
 
-                // 3. Cria o objeto de Autenticação
+                // Cria o objeto de Autenticação
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                         userDetails, null, userDetails.getAuthorities());
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
@@ -50,7 +50,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 // Injeta a autenticação no contexto
                 SecurityContextHolder.getContext().setAuthentication(authentication);
 
-                // 💡 LOG DE DEBUG CRÍTICO: Confirma que o token foi injetado como autenticado
+                // LOG DE DEBUG CRÍTICO: Confirma que o token foi injetado como autenticado
                 System.out.println("DEBUG (Context): Token injetado com status isAuthenticated(): " + authentication.isAuthenticated());
             }
         } catch (Exception ex) {

@@ -92,7 +92,7 @@ public class AuthController {
         return new ResponseEntity<>("Usuário registrado com sucesso!", HttpStatus.CREATED);
     }
 
-    // NOVA ROTA 1: Geração de Token de Redefinição
+    // Geração de Token de Redefinição
     @PostMapping("/forgot-password")
     public ResponseEntity<String> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
         // A lógica de geração de token e checagem de e-mail está no UserService
@@ -102,7 +102,7 @@ public class AuthController {
         return ResponseEntity.ok("Se o e-mail estiver cadastrado, um link de redefinição será enviado.");
     }
 
-    //  NOVA ROTA 2: Execução da Redefinição de Senha
+    // Execução da Redefinição de Senha
     @PostMapping("/reset-password")
     public ResponseEntity<String> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         // A lógica de validação de token, expiração e atualização de senha está no UserService

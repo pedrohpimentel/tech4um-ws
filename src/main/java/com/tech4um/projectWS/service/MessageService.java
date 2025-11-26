@@ -19,7 +19,6 @@ public class MessageService {
         this.messageRepository = messageRepository;
     }
 
-    // Salva a mensagem no MongoDB
     public Message save(Message message) {
         logger.debug("Salvando mensagem no fórum ID: {}", message.getForumId());
         return messageRepository.save(message);

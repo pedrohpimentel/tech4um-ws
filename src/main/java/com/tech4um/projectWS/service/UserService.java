@@ -41,8 +41,8 @@ public class UserService {
 
     // --- Nova Lógica de Redefinição de Senha ---
 
-    /**
-     * 1. Geração de Token de Redefinição
+    /*
+     * Geração de Token de Redefinição
      * @param email O e-mail do usuário
      * @return O token gerado (String) ou null se o usuário não for encontrado.
      */
@@ -70,7 +70,7 @@ public class UserService {
         return token;
     }
 
-    /**
+    /*
      * 2. Execução da Redefinição de Senha
      * @param token O token de redefinição
      * @param newPassword A nova senha em texto simples
@@ -98,7 +98,7 @@ public class UserService {
         //  Criptografa e salva a nova senha
         user.setPassword(passwordEncoder.encode(newPassword));
 
-        //  Limpa o token e a data/hora para evitar reuso
+        // Limpa o token e a data/hora para evitar reuso
         user.setResetPasswordToken(null);
         user.setTokenExpiryDate(null);
 
