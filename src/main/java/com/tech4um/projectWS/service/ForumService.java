@@ -16,7 +16,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -43,20 +42,9 @@ public class ForumService {
     // =========================================================================
 
     /*
-     * Converte a Entidade Forum para o DTO de Resposta ForumResponse.
-     * @param forum A entidade JPA Forum.
-     * @return O DTO ForumResponse.
+     * REMOVIDO: O método toForumResponse foi removido,
+     * pois o ForumResponse.fromEntity(Forum) já faz o mapeamento completo (incluindo Autor).
      */
-    private ForumResponse toForumResponse(Forum forum) {
-        return ForumResponse.builder()
-                .id(forum.getId())
-                .title(forum.getTitle())
-                .name(forum.getName())
-                .description(forum.getDescription())
-                // Converte LocalDateTime para Unix Timestamp (Long)
-                .createdAt(forum.getCreatedAt().toEpochSecond(ZoneOffset.UTC))
-                .build();
-    }
 
     /**
      * Busca a entidade Forum por ID.
@@ -68,7 +56,7 @@ public class ForumService {
     }
 
     /**
-     * NOVO: Retorna a entidade Forum, usado para lógica de back-end (como no ChatController)
+     * Retorna a entidade Forum, usado para lógica de back-end (como no ChatController)
      * que precisa da entidade JPA completa para associação.
      * @param id O ID do fórum.
      * @return A entidade Forum.
@@ -84,9 +72,7 @@ public class ForumService {
 
     /*
      * Lógica: Criar novo Fórum a partir do DTO de requisição.
-     * CORREÇÃO: Garante que 'title' e 'name' sejam populados na entidade antes de salvar,
-     * resolvendo o erro de NOT NULL.
-     * * @param request O DTO ForumRequest com os dados do novo fórum.
+     * @param request O DTO ForumRequest com os dados do novo fórum.
      * @param creatorId O ID do usuário logado.
      * @return O DTO ForumResponse do fórum criado.
      */
@@ -107,10 +93,9 @@ public class ForumService {
         // 3. Converte DTO para Entidade Forum
         Forum newForum = new Forum();
 
-        // CORREÇÃO CRÍTICA: Popula 'title' e 'name'
+        // Popula 'title' e 'name'
         newForum.setTitle(request.getTitle());
-        newForum.setName(request.getTitle()); // Assumindo que 'name' e 'title' são o mesmo valor para este cenário
-
+        newForum.setName(request.getTitle()); // 'name' é preenchido com o valor de 'title'
         newForum.setDescription(request.getDescription());
         newForum.setCreator(creator);
         newForum.setCreatedAt(LocalDateTime.now());
@@ -118,11 +103,11 @@ public class ForumService {
         // 4. Adiciona o criador como participante
         newForum.getParticipants().add(creator);
 
-        // 5. Salva o fórum (O Hibernate agora terá os valores para 'title' e 'name')
+        // 5. Salva o fórum
         Forum savedForum = forumRepository.save(newForum);
 
-        // 6. Converte e retorna o DTO de resposta
-        return toForumResponse(savedForum);
+        // 6. Converte usando o método estático que inclui o Autor (CORREÇÃO FINAL)
+        return ForumResponse.fromEntity(savedForum);
     }
 
     /*
@@ -130,7 +115,8 @@ public class ForumService {
      */
     public List<ForumResponse> findAllForums(){
         return forumRepository.findAll().stream()
-                .map(this::toForumResponse)
+                // Usa o método estático para mapear, que inclui a conversão de data e Autor
+                .map(ForumResponse::fromEntity)
                 .collect(Collectors.toList());
     }
 
@@ -139,7 +125,8 @@ public class ForumService {
      */
     public ForumResponse findById(Long id){
         Forum forum = getForumEntityById(id);
-        return toForumResponse(forum);
+        // Usa o método estático para mapear
+        return ForumResponse.fromEntity(forum);
     }
 
     // Lógica: Excluir
@@ -154,7 +141,7 @@ public class ForumService {
     // =========================================================================
 
     /*
-     * Lógica: Envio de Mensagem (mantida)
+     * Lógica: Envio de Mensagem
      */
     @Transactional
     public Message saveMessage(Long forumId, Long userId, Message message) {
