@@ -19,15 +19,23 @@ public class MessageService {
         this.messageRepository = messageRepository;
     }
 
+    /*
+     * Lógica para salvar a mensagem.
+     * Requer que a entidade Message já tenha o objeto Forum setado.
+     */
     public Message save(Message message) {
-        logger.debug("Salvando mensagem no fórum ID: {}", message.getForumId());
+        // CORREÇÃO: Acessamos o ID pelo objeto Forum, não por um campo ID direto
+        logger.debug("Salvando mensagem no fórum ID: {}", message.getForum().getId());
         return messageRepository.save(message);
     }
 
-    //Busca o histórico de mensagens de um fórum
-    // Mudar o tipo do parâmetro de String para Long
+    /*
+     * Busca o histórico de mensagens de um fórum.
+     * CORREÇÃO: Usamos o método findByForumIdOrderBySentAtAsc, que corresponde
+     * ao nome do método definido no seu MessageRepository.
+     */
     public List<Message> findChatHistoryByForumId(Long forumId) {
-        return messageRepository.findByForumIdOrderByTimestampAsc(forumId);
+        return messageRepository.findByForumIdOrderBySentAtAsc(forumId);
     }
 
 }

@@ -14,24 +14,38 @@ import java.util.UUID;
 public class UserService {
 
     private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder; // Injeção do PasswordEncoder
+    private final PasswordEncoder passwordEncoder;
 
     // Tempo de validade do token em minutos
     private static final int EXPIRATION_MINUTES = 30;
 
-    // Construtor Atualizado: Recebe e injeta o PasswordEncoder
     public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
-    // --- Métodos Existentes ---
+    // --- Métodos de Busca para o ChatController e Login ---
 
-    public User findUserByEmail(String email) {
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado com e-mail: " + email));
+    /*
+     * Busca um usuário pelo e-mail, retornando um Optional.
+     * Necessário para o ChatController (sender/recipient) e AuthController.
+     */
+    public Optional<User> findByEmail(String email) {
+        // Renomeado de findUserByEmail para findByEmail para melhor padronização
+        return userRepository.findByEmail(email);
     }
 
+    /*
+     * Busca um usuário pelo ID, retornando um Optional.
+     * Necessário para o ChatController (recuperar o destinatário pelo ID).
+     */
+    public Optional<User> findById(Long id) {
+        return userRepository.findById(id);
+    }
+
+    /*
+     * Busca o ID do usuário pelo e-mail (Mantido para compatibilidade, mas findByEmail é preferível).
+     */
     public Long getUserIdByEmail(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado para obter ID com e-mail: " + email));
@@ -39,10 +53,10 @@ public class UserService {
         return user.getId();
     }
 
-    // --- Nova Lógica de Redefinição de Senha ---
+    // --- Lógica de Redefinição de Senha ---
 
     /*
-     * Geração de Token de Redefinição
+     * 1. Geração de Token de Redefinição
      * @param email O e-mail do usuário
      * @return O token gerado (String) ou null se o usuário não for encontrado.
      */
@@ -77,7 +91,7 @@ public class UserService {
      * @return true se a senha foi redefinida, false se o token é inválido ou expirou.
      */
     public boolean resetPassword(String token, String newPassword) {
-        // Encontra o usuário pelo token
+        // 1. Encontra o usuário pelo token
         Optional<User> userOptional = userRepository.findByResetPasswordToken(token);
 
         if (userOptional.isEmpty()) {
@@ -86,7 +100,7 @@ public class UserService {
 
         User user = userOptional.get();
 
-        //  Verifica a expiração
+        // 2. Verifica a expiração
         if (user.getTokenExpiryDate() == null || user.getTokenExpiryDate().isBefore(LocalDateTime.now())) {
             // Limpa o token expirado
             user.setResetPasswordToken(null);
@@ -95,10 +109,10 @@ public class UserService {
             return false; // Token expirado
         }
 
-        //  Criptografa e salva a nova senha
+        // 3. Criptografa e salva a nova senha
         user.setPassword(passwordEncoder.encode(newPassword));
 
-        // Limpa o token e a data/hora para evitar reuso
+        // 4. Limpa o token e a data/hora para evitar reuso
         user.setResetPasswordToken(null);
         user.setTokenExpiryDate(null);
 
