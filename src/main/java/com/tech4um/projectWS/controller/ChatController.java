@@ -1,6 +1,6 @@
 package com.tech4um.projectWS.controller;
 
-import com.tech4um.projectWS.dto.ChatRequest;
+import com.tech4um.projectWS.dto.chat.ChatRequest;
 import com.tech4um.projectWS.exception.ResourceNotFoundException;
 import com.tech4um.projectWS.model.Forum;
 import com.tech4um.projectWS.model.Message;

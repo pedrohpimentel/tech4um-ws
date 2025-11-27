@@ -1,10 +1,10 @@
 package com.tech4um.projectWS.controller;
 
-import com.tech4um.projectWS.dto.ForgotPasswordRequest;
-import com.tech4um.projectWS.dto.LoginRequest;
-import com.tech4um.projectWS.dto.LoginResponse;
-import com.tech4um.projectWS.dto.RegisterRequest;
-import com.tech4um.projectWS.dto.ResetPasswordRequest;
+import com.tech4um.projectWS.dto.password.ForgotPasswordRequest;
+import com.tech4um.projectWS.dto.login.LoginRequest;
+import com.tech4um.projectWS.dto.login.LoginResponse;
+import com.tech4um.projectWS.dto.register.RegisterRequest;
+import com.tech4um.projectWS.dto.password.ResetPasswordRequest;
 import com.tech4um.projectWS.model.User;
 import com.tech4um.projectWS.repository.UserRepository;
 import com.tech4um.projectWS.security.JwtTokenProvider;

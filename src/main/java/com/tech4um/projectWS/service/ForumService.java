@@ -1,7 +1,7 @@
 package com.tech4um.projectWS.service;
 
-import com.tech4um.projectWS.dto.ForumRequest;
-import com.tech4um.projectWS.dto.ForumResponse;
+import com.tech4um.projectWS.dto.forum.ForumRequest;
+import com.tech4um.projectWS.dto.forum.ForumResponse;
 import com.tech4um.projectWS.exception.ConflictException;
 import com.tech4um.projectWS.exception.ResourceNotFoundException;
 import com.tech4um.projectWS.model.Forum;

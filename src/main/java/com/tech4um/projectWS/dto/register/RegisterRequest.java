@@ -1,4 +1,4 @@
-package com.tech4um.projectWS.dto;
+package com.tech4um.projectWS.dto.register;
 
 import com.tech4um.projectWS.model.User.Role; // Importação da Role do User
 

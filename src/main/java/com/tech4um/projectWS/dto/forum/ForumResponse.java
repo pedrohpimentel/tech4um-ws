@@ -1,4 +1,4 @@
-package com.tech4um.projectWS.dto;
+package com.tech4um.projectWS.dto.forum;
 
 import lombok.Builder;
 import lombok.Data;

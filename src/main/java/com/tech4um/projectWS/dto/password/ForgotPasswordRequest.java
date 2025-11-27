@@ -1,4 +1,4 @@
-package com.tech4um.projectWS.dto;
+package com.tech4um.projectWS.dto.password;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

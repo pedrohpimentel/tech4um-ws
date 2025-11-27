@@ -1,9 +1,9 @@
 package com.tech4um.projectWS.controller;
 
-import com.tech4um.projectWS.dto.ForumRequest;
-import com.tech4um.projectWS.dto.ForumResponse;
-import com.tech4um.projectWS.dto.MessageRequest;
-import com.tech4um.projectWS.dto.MessageResponse;
+import com.tech4um.projectWS.dto.forum.ForumRequest;
+import com.tech4um.projectWS.dto.forum.ForumResponse;
+import com.tech4um.projectWS.dto.message.MessageRequest;
+import com.tech4um.projectWS.dto.message.MessageResponse;
 import com.tech4um.projectWS.exception.ResourceNotFoundException;
 import com.tech4um.projectWS.model.Forum;
 import com.tech4um.projectWS.model.Message;

@@ -1,4 +1,4 @@
-package com.tech4um.projectWS.dto;
+package com.tech4um.projectWS.dto.message;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
