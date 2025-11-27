@@ -5,7 +5,7 @@ import com.tech4um.projectWS.exception.ResourceNotFoundException;
 import com.tech4um.projectWS.model.Forum;
 import com.tech4um.projectWS.model.Message;
 import com.tech4um.projectWS.model.User;
-import com.tech4um.projectWS.service.ForumService; // NOVO: Adicionado para buscar a entidade Forum
+import com.tech4um.projectWS.service.ForumService;
 import com.tech4um.projectWS.service.MessageService;
 import com.tech4um.projectWS.service.UserService;
 import org.slf4j.Logger;
@@ -25,16 +25,16 @@ public class ChatController {
     private final SimpMessagingTemplate messagingTemplate;
     private final MessageService messageService;
     private final UserService userService;
-    private final ForumService forumService; //  NOVO: Injetar ForumService
+    private final ForumService forumService;
 
     public ChatController(SimpMessagingTemplate messagingTemplate,
                           MessageService messageService,
                           UserService userService,
-                          ForumService forumService) { // 💡 Adicionar ForumService
+                          ForumService forumService) {
         this.messagingTemplate = messagingTemplate;
         this.messageService = messageService;
         this.userService = userService;
-        this.forumService = forumService; // Inicializar
+        this.forumService = forumService;
     }
 
     // Mapeia a mensagem de entrada do cliente: /app/chat.send
@@ -44,16 +44,18 @@ public class ChatController {
         String senderEmail = principal.getName();
 
         // 1. Busca as ENTIDADES (Objetos JPA) necessárias
-        User sender = userService.findByEmail(senderEmail) // Assumindo que findByEmail retorna Optional<User> ou User
+        User sender = userService.findByEmail(senderEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("Remetente não encontrado."));
 
-        Forum forum = forumService.findById(request.getForumId());
+        //  Usa o novo método 'getForumEntity' do Service que retorna a ENTIDADE Forum,
+        // e não o DTO 'ForumResponse'.
+        Forum forum = forumService.getForumEntity(request.getForumId());
 
 
         // 2. Mapeia DTO para o Modelo interno (Message)
         Message message = new Message();
-        message.setUser(sender);      // 🟢 CORRIGIDO: Usa setUser(User)
-        message.setForum(forum);      // 🟢 CORRIGIDO: Usa setForum(Forum)
+        message.setUser(sender);      //  Usa setUser(User)
+        message.setForum(forum);      //  Usa setForum(Forum)
         message.setContent(request.getContent());
 
         // 3. Determina o Tipo de Mensagem
@@ -79,7 +81,6 @@ public class ChatController {
         if (savedMessage.getType() == Message.MessageType.PUBLIC) {
 
             // Roteamento Público: /topic/forum.{forumId}
-            // 🟢 CORRIGIDO: Acessa o ID pelo objeto Forum, resolvendo o erro de compilação
             String destination = "/topic/forum." + savedMessage.getForum().getId().toString();
             messagingTemplate.convertAndSend(destination, savedMessage);
 

@@ -8,6 +8,7 @@ import com.tech4um.projectWS.exception.ResourceNotFoundException;
 import com.tech4um.projectWS.model.Forum;
 import com.tech4um.projectWS.model.Message;
 import com.tech4um.projectWS.model.User;
+import com.tech4um.projectWS.repository.ForumRepository;
 import com.tech4um.projectWS.repository.UserRepository;
 import com.tech4um.projectWS.service.ForumService;
 import jakarta.validation.Valid;
@@ -25,11 +26,13 @@ import java.util.stream.Collectors;
 public class ForumController {
 
     private final ForumService forumService;
-    private final UserRepository userRepository; // Adicionado para obter o usuário logado
+    private final UserRepository userRepository;
+    private final ForumRepository forumRepository;
 
-    public ForumController(ForumService forumService, UserRepository userRepository){
+    public ForumController(ForumService forumService, UserRepository userRepository, ForumRepository forumRepository){
         this.forumService = forumService;
         this.userRepository = userRepository;
+        this.forumRepository = forumRepository;
     }
 
     // =========================================================================
@@ -38,8 +41,7 @@ public class ForumController {
 
     /*
      * POST /api/forums
-     * Cria um novo fórum, definindo o usuário logado como CRIADOR e PARTICIPANTE.
-     * Requer Autenticação (JWT).
+     * Cria um novo fórum.
      */
     @PostMapping
     public ResponseEntity<ForumResponse> createForum(@Valid @RequestBody ForumRequest request,
@@ -49,22 +51,8 @@ public class ForumController {
         User user = userRepository.findByEmail(currentUser.getUsername())
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário logado não encontrado."));
 
-        // 2. Mapeia DTO para o Modelo (A entidade Forum agora espera 'title')
-        Forum forum = new Forum();
-        // Assumindo que ForumRequest.name foi alterado para ForumRequest.title
-        forum.setTitle(request.getName());
-        forum.setDescription(request.getDescription());
-
-        // 3. O Service lida com a atribuição de Criador e Participantes
-        Forum createdForum = forumService.createForum(forum, user.getId());
-
-        // 4. Mapeia o modelo para o DTO de resposta (usando o novo campo 'title')
-        ForumResponse response = ForumResponse.builder()
-                .id(createdForum.getId())
-                .name(createdForum.getTitle()) // Usando getTitle()
-                .description(createdForum.getDescription())
-                .createdAt(createdForum.getCreatedAt().toEpochSecond(java.time.ZoneOffset.UTC)) // Convertendo de volta para Long (se necessário)
-                .build();
+        // 2. O Service recebe o DTO e já retorna o DTO de Resposta (ForumResponse)
+        ForumResponse response = forumService.createForum(request, user.getId());
 
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
@@ -75,20 +63,23 @@ public class ForumController {
      */
     @GetMapping
     public ResponseEntity<List<ForumResponse>> getAllForums(){
-        List<Forum> forums = forumService.findAllForums();
-
-        // Mapeia a lista de Modelos para uma lista de DTOs
-        List<ForumResponse> responses = forums.stream()
-                .map(forum -> ForumResponse.builder()
-                        .id(forum.getId())
-                        .name(forum.getTitle()) // Usando getTitle()
-                        .description(forum.getDescription())
-                        .createdAt(forum.getCreatedAt().toEpochSecond(java.time.ZoneOffset.UTC))
-                        .build())
-                .collect(Collectors.toList());
+        List<ForumResponse> responses = forumService.findAllForums();
 
         return ResponseEntity.ok(responses);
     }
+
+    /*
+     * GET /api/forums/{id}
+     * Busca um fórum específico pelo seu ID (PÚBLICO).
+     * ESTE É O MÉTODO QUE FALTAVA.
+     */
+    @GetMapping("/{id}")
+    public ResponseEntity<ForumResponse> getForumById(@PathVariable Long id) {
+        // Assume-se que forumService.findById() retorna o ForumResponse e lida com o ResourceNotFoundException
+        ForumResponse forum = forumService.findById(id);
+        return ResponseEntity.ok(forum);
+    }
+
 
     /*
      * DELETE /api/forums/{id}
@@ -98,16 +89,18 @@ public class ForumController {
     public ResponseEntity<Void> deleteForum(@PathVariable Long id,
                                             @AuthenticationPrincipal UserDetails currentUser){
 
-        Forum forumToDelete = forumService.findById(id);
+        // 1. Busca a Entidade Forum
+        Forum forumToDelete = forumRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Fórum não encontrado com ID: " + id));
 
-        // Verifica o usuário logado
+        // 2. Verifica o usuário logado
         User user = userRepository.findByEmail(currentUser.getUsername())
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário logado não encontrado."));
 
-        // 1. Checa se o usuário logado é o CRIADOR
+        // 3. Checa se o usuário logado é o CRIADOR
         boolean isCreator = forumToDelete.getCreator().getId().equals(user.getId());
 
-        // 2. Checa se o usuário é ADMIN (se sua classe UserDetails prover essa informação)
+        // 4. Checa se o usuário é ADMIN (usando a autoridade do Spring Security)
         boolean isAdmin = currentUser.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
@@ -115,6 +108,7 @@ public class ForumController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build(); // 403 Forbidden
         }
 
+        // Se autorizado, delega a exclusão ao Service
         forumService.deleteForum(id);
         return ResponseEntity.noContent().build();
     }
@@ -125,8 +119,7 @@ public class ForumController {
 
     /*
      * POST /api/forums/{forumId}/messages
-     * Envia uma nova mensagem no fórum. O usuário logado é o emissor e vira participante.
-     * Requer Autenticação (JWT).
+     * Envia uma nova mensagem no fórum.
      */
     @PostMapping("/{forumId}/messages")
     public ResponseEntity<MessageResponse> sendMessage(@PathVariable Long forumId,
@@ -164,12 +157,12 @@ public class ForumController {
     @GetMapping("/{forumId}/messages")
     public ResponseEntity<List<MessageResponse>> getForumMessages(@PathVariable Long forumId) {
 
-        // Garante que o fórum existe antes de buscar as mensagens
+        // 1. Encontra o fórum (apenas para validar existência, embora o Service também faça)
         forumService.findById(forumId);
 
         List<Message> messages = forumService.getMessagesByForum(forumId);
 
-        // Mapeia a lista de Modelos para uma lista de DTOs de Resposta
+        // 2. Mapeia a lista de Modelos para uma lista de DTOs de Resposta
         List<MessageResponse> responses = messages.stream()
                 .map(message -> MessageResponse.builder()
                         .id(message.getId())

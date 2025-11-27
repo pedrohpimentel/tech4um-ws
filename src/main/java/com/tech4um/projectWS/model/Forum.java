@@ -13,22 +13,23 @@ public class Forum {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Coluna para o Título (substitui 'name')
-    @Column(unique = true, nullable = false)
+    @Column(name = "title", nullable = false)
     private String title;
 
-    @Column(nullable = false)
+    @Column(name = "name", nullable = false)
+    private String name;
+
+    @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
-    // --- NOVOS CAMPOS PARA ATENDER AO REQUISITO ---
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt = LocalDateTime.now();
 
-    // 1. Criador (Creator): Relação N:1 com a entidade User
-    // O criador é um único User.
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "creator_id", nullable = false)
     private User creator;
 
-    // 2. Participantes (Participants): Relação N:N (Muitos para Muitos) com User
+    // Mapeamento para Participantes
     @ManyToMany
     @JoinTable(
             name = "forum_participants",
@@ -37,18 +38,15 @@ public class Forum {
     )
     private Set<User> participants = new HashSet<>();
 
-    // Relação 1:N com as mensagens (opicional, mas bom para exclusão em cascata)
+    // 🟢 ADIÇÃO CRÍTICA: Mapeamento One-to-Many para Messages
+    // Usando CascadeType.ALL para garantir que as mensagens sejam deletadas antes do fórum.
     @OneToMany(mappedBy = "forum", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<Message> messages;
-
-    @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private Set<Message> messages = new HashSet<>();
 
 
-    // Construtor padrão
-    public Forum() {}
-
-    // Getters e Setters (Necessários após remover @Data do Lombok)
+    // Construtores, Getters e Setters (MANTIDOS E ADICIONADOS PARA MESSAGES)
+    public Forum() {
+    }
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -56,19 +54,22 @@ public class Forum {
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
 
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
     public User getCreator() { return creator; }
     public void setCreator(User creator) { this.creator = creator; }
 
     public Set<User> getParticipants() { return participants; }
-    public void addParticipant(User user) { this.participants.add(user); }
     public void setParticipants(Set<User> participants) { this.participants = participants; }
 
+    // Getter e Setter para a nova coleção de Messages
     public Set<Message> getMessages() { return messages; }
     public void setMessages(Set<Message> messages) { this.messages = messages; }
-
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

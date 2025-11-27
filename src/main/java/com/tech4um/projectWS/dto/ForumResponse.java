@@ -8,7 +8,8 @@ import lombok.Data;
 public class ForumResponse {
 
     private Long id;
-    private String name;
+    private String title; // Adicionei 'title' para refletir a Entidade, o original tinha 'name'
+    private String name; // Mantido 'name' para garantir que os dados retornados sejam completos
     private String description;
-    private Long createdAt;
+    private Long createdAt; // Unix Timestamp
 }

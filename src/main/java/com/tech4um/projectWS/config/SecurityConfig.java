@@ -17,6 +17,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity; // Import necessário
+import org.springframework.http.HttpMethod; // Import necessário para referenciar GET, POST, etc.
 
 import java.util.Arrays;
 
@@ -69,6 +70,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Rotas de autenticação são públicas
                         .requestMatchers("/api/auth/**").permitAll()
+
+                        // CORREÇÃO: Permite acesso público a todos os métodos GET nos caminhos /api/forums
+                        // Isso inclui: GET /api/forums, GET /api/forums/{id}, GET /api/forums/{id}/messages
+                        .requestMatchers(HttpMethod.GET, "/api/forums", "/api/forums/**").permitAll()
 
                         // CRÍTICO: Rota /api/users requer ROLE_USER ou ROLE_ADMIN
                         .requestMatchers("/api/users/**").hasAnyRole("USER", "ADMIN")
