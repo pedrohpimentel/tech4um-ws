@@ -41,14 +41,12 @@ public class JwtTokenProvider {
         Date now  = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpirationInMs);
 
-        System.out.println("PRINT ANTES JWT");
         String jwt = Jwts.builder()
                 .setSubject(userEmail)
                 .setIssuedAt(new Date())
                 .setExpiration(expiryDate)
                 .signWith(key(), SignatureAlgorithm.HS256)
                 .compact();
-        System.out.println("PRINT DEPOIS JWT" + jwt);
         return jwt;
     }
 
