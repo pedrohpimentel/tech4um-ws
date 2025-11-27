@@ -1,46 +1,51 @@
 package com.tech4um.projectWS.model;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Data;
+import java.time.LocalDateTime;
 
-@Data
+@Data // O Lombok Data é aceitável aqui, pois o relacionamento é simples
 @Entity // Marca a classe como uma tabela no banco de dados relacional
 @Table(name = "messages") // Nome da tabela no MySQL
 public class Message {
 
     // CHAVE PRIMÁRIA JPA: Usamos Long e auto-geração
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY) // Auto-incremento gerenciado pelo MySQL
-    private Long id; // O tipo muda de String (MongoDB) para Long (JPA)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-    // Chaves estrangeiras (IDs de outras entidades)
-    // Usamos Long para corresponder ao novo tipo Long do ID de Forum/User
-    // Se for String, mantenha String. Assumindo que Forum.id agora é Long.
-    private Long forumId;
+    // Relação N:1 com o Fórum (a qual fórum a mensagem pertence)
+    // Substitui 'private Long forumId;'
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "forum_id", nullable = false)
+    private Forum forum;
 
-    private Long senderId;
+    // Relação N:1 com o Usuário (quem enviou a mensagem)
+    // Substitui 'private Long senderId;'
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
-    // Conteúdo (pode precisar de @Lob se for muito longo, mas String é suficiente por padrão)
-    @Column(length = 2000) // Exemplo: define um limite razoável para a coluna
+    // Conteúdo da mensagem
+    @Column(length = 2000, nullable = false)
     private String content;
 
     // ENUM JPA: Garante que o ENUM seja persistido como String no MySQL
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private MessageType type = MessageType.PUBLIC;
 
-    private Long recipientId; // Usado apenas se TYPE for PRIVATE!
+    // Campo de ID do destinatário (apenas usado se TYPE for PRIVATE)
+    private Long recipientId;
 
-    private Long timestamp = System.currentTimeMillis();
+    // Uso de LocalDateTime para timestamps (Melhor prática para JPA)
+    @Column(name = "sent_at", nullable = false)
+    private LocalDateTime sentAt = LocalDateTime.now();
 
     public enum MessageType {
         PUBLIC,
         PRIVATE
     }
+
+    // Nota: O Lombok (@Data) gerará automaticamente os construtores, getters e setters.
 }

@@ -1,33 +1,74 @@
 package com.tech4um.projectWS.model;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import lombok.Data;
+import jakarta.persistence.*;
+import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
-@Data
-@Entity // Marca a classe como uma tabela no banco de dados relacional
-@Table(name = "forums") // Nome da tabela no MySQL
+@Entity
+@Table(name = "forums")
 public class Forum {
 
-    // CHAVE PRIMÁRIA JPA: Usamos Long e auto-geração para o MySQL
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY) // Auto-incremento gerenciado pelo MySQL
-    private Long id; // O tipo muda de String (MongoDB) para Long (JPA)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-    // COLUNAS JPA: Define a restrição de unicidade
-
-    // name deve ser único (replicando @Indexed(unique = true))
+    // Coluna para o Título (substitui 'name')
     @Column(unique = true, nullable = false)
-    private String name;
+    private String title;
 
+    @Column(nullable = false)
     private String description;
 
-    // Coluna para armazenar o timestamp (Long)
-    // O JPA/Hibernate cuidará de mapear isso corretamente para o tipo numérico no MySQL
-    private Long createdAt = System.currentTimeMillis();
+    // --- NOVOS CAMPOS PARA ATENDER AO REQUISITO ---
 
+    // 1. Criador (Creator): Relação N:1 com a entidade User
+    // O criador é um único User.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "creator_id", nullable = false)
+    private User creator;
+
+    // 2. Participantes (Participants): Relação N:N (Muitos para Muitos) com User
+    @ManyToMany
+    @JoinTable(
+            name = "forum_participants",
+            joinColumns = @JoinColumn(name = "forum_id"),
+            inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
+    private Set<User> participants = new HashSet<>();
+
+    // Relação 1:N com as mensagens (opicional, mas bom para exclusão em cascata)
+    @OneToMany(mappedBy = "forum", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<Message> messages;
+
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt = LocalDateTime.now();
+
+
+    // Construtor padrão
+    public Forum() {}
+
+    // Getters e Setters (Necessários após remover @Data do Lombok)
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
+
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+
+    public User getCreator() { return creator; }
+    public void setCreator(User creator) { this.creator = creator; }
+
+    public Set<User> getParticipants() { return participants; }
+    public void addParticipant(User user) { this.participants.add(user); }
+    public void setParticipants(Set<User> participants) { this.participants = participants; }
+
+    public Set<Message> getMessages() { return messages; }
+    public void setMessages(Set<Message> messages) { this.messages = messages; }
+
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }
