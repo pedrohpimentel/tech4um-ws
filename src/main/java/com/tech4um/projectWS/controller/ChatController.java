@@ -27,6 +27,7 @@ public class ChatController {
     private final UserService userService;
     private final ForumService forumService;
 
+    // ... Construtor (inalterado) ...
     public ChatController(SimpMessagingTemplate messagingTemplate,
                           MessageService messageService,
                           UserService userService,
@@ -37,36 +38,45 @@ public class ChatController {
         this.forumService = forumService;
     }
 
+
     // Mapeia a mensagem de entrada do cliente: /app/chat.send
     @MessageMapping("/chat.send")
     public void sendMessage(@Payload ChatRequest request, Principal principal) {
 
+        // ** CRÍTICO **: Se o Principal for nulo, significa que seu StompJwtChannelInterceptor FALHOU
+        // em bloquear a mensagem SEND não autenticada. No entanto, se o interceptor estiver correto,
+        // o 'principal' NUNCA será nulo aqui.
+        if (principal == null) {
+            // Se esta linha for executada, a mensagem não deve ser processada.
+            logger.error("Mensagem recebida sem Principal autenticado. Ignorando.");
+            return;
+        }
+
         String senderEmail = principal.getName();
+        User recipient = null; // Variável para armazenar o destinatário (se for privado)
 
         // 1. Busca as ENTIDADES (Objetos JPA) necessárias
         User sender = userService.findByEmail(senderEmail)
-                .orElseThrow(() -> new ResourceNotFoundException("Remetente não encontrado."));
+                .orElseThrow(() -> new ResourceNotFoundException("Remetente não encontrado após autenticação."));
 
-        //  Usa o novo método 'getForumEntity' do Service que retorna a ENTIDADE Forum,
-        // e não o DTO 'ForumResponse'.
         Forum forum = forumService.getForumEntity(request.getForumId());
-
 
         // 2. Mapeia DTO para o Modelo interno (Message)
         Message message = new Message();
-        message.setUser(sender);      //  Usa setUser(User)
-        message.setForum(forum);      //  Usa setForum(Forum)
+        message.setUser(sender);
+        message.setForum(forum);
         message.setContent(request.getContent());
 
-        // 3. Determina o Tipo de Mensagem
+        // 3. Determina o Tipo de Mensagem e Busca o Destinatário (Otimizado)
         if (request.getRecipientEmail() != null && !request.getRecipientEmail().isBlank()) {
             message.setType(Message.MessageType.PRIVATE);
 
-            // Buscar o ID (Long) do destinatário também, se for privado
-            User recipient = userService.findByEmail(request.getRecipientEmail())
+            // Busca o destinatário APENAS UMA VEZ
+            recipient = userService.findByEmail(request.getRecipientEmail())
                     .orElseThrow(() -> new ResourceNotFoundException("Destinatário não encontrado."));
 
-            message.setRecipientId(recipient.getId()); // Usamos o ID aqui, pois é um campo não-JPA simples.
+            // Define o ID do destinatário na mensagem
+            message.setRecipientId(recipient.getId());
 
             logger.info("Mensagem PRIVADA de {} para {}", senderEmail, request.getRecipientEmail());
         } else {
@@ -86,22 +96,27 @@ public class ChatController {
 
         } else if (savedMessage.getType() == Message.MessageType.PRIVATE) {
 
-            // Roteamento Privado para o remetente
+            // Roteamento Privado:
+
+            // 5a. Envia para o Remetente (Remetente se inscreve em /user/queue/private)
             messagingTemplate.convertAndSendToUser(
-                    senderEmail, // Roteamento STOMP usa o EMAIL do remetente
+                    senderEmail,
                     "/private",
                     savedMessage
             );
 
-            // E também para o destinatário (usamos o e-mail para o roteamento STOMP)
-            User recipient = userService.findById(savedMessage.getRecipientId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Erro de destinatário."));
-
-            messagingTemplate.convertAndSendToUser(
-                    recipient.getEmail(),
-                    "/private",
-                    savedMessage
-            );
+            // 5b. Envia para o Destinatário (Destinatário se inscreve em /user/queue/private)
+            // Reutilizamos o objeto 'recipient' obtido no passo 3.
+            if (recipient != null) {
+                messagingTemplate.convertAndSendToUser(
+                        recipient.getEmail(), // Usa o e-mail do destinatário
+                        "/private",
+                        savedMessage
+                );
+            } else {
+                // Embora improvável, esta exceção deve ser lançada se o recipient for nulo em uma mensagem PRIVATE.
+                logger.error("Erro interno: Destinatário não encontrado para roteamento privado da mensagem ID: {}", savedMessage.getId());
+            }
         }
     }
 }

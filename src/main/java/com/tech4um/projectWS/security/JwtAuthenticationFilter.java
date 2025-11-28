@@ -20,7 +20,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtTokenProvider tokenProvider;
     private final CustomUserDetailsService userDetailsService;
 
-    public JwtAuthenticationFilter(JwtTokenProvider tokenProvider, CustomUserDetailsService customUserDetailsService){
+    public JwtAuthenticationFilter(JwtTokenProvider tokenProvider, CustomUserDetailsService customUserDetailsService) {
         this.tokenProvider = tokenProvider;
         this.userDetailsService = customUserDetailsService;
     }
@@ -74,8 +74,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
-        // Se a rota começar com /api/auth/, pule este filtro
-        return request.getServletPath().startsWith("/api/auth");
-    }
+        String path = request.getServletPath();
 
+        // Rotas públicas que não precisam de verificação JWT (ex: Auth e WebSocket Handshake)
+        if (path.startsWith("/api/auth") || path.startsWith("/ws")) {
+            return true; // Não execute o filtro para essas rotas
+        }
+        return false; // Execute o filtro para todas as outras rotas
+    }
 }
