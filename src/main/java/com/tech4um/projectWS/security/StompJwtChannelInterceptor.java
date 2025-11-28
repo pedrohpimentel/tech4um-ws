@@ -24,57 +24,64 @@ public class StompJwtChannelInterceptor implements ChannelInterceptor {
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
-        StompHeaderAccessor accessor = StompHeaderAccessor.wrap(message);
-        StompCommand command = accessor.getCommand();
+        StompHeaderAccessor accessor = null;
+        try {
+            accessor = StompHeaderAccessor.wrap(message);
+            StompCommand command = accessor.getCommand();
 
-        // Loga no início para confirmar se o Interceptor está sendo invocado
-        System.out.println("### STOMP INTERCEPTOR DEBUG: Invocado para o comando: " + command);
+            // 1. LOG DE INVOCACÃO DO INTERCEPTOR
+            System.out.println("### STOMP INTERCEPTOR DEBUG: Invocado para o comando: " + command);
 
-        // A autenticação é obrigatória para os comandos CONNECT e SEND
-        if (StompCommand.CONNECT.equals(command) || StompCommand.SEND.equals(command)) {
+            if (StompCommand.CONNECT.equals(command) || StompCommand.SEND.equals(command)) {
 
-            List<String> authHeaders = accessor.getNativeHeader("Authorization");
-            String token = extractToken(authHeaders);
+                List<String> authHeaders = accessor.getNativeHeader("Authorization");
 
-            boolean isAuthenticated = false;
+                // 2. LOG DE CABEÇALHO BRUTO
+                System.out.println("DEBUG STOMP: Cabeçalho Authorization recebido: " + (authHeaders != null ? authHeaders.get(0) : "NULO"));
 
-            if (token != null) {
-                try {
-                    if (tokenProvider.validateToken(token)) {
-                        String userEmail = tokenProvider.getUserIdFromJWT(token);
-                        UserDetails userDetails = userDetailsService.loadUserByUsername(userEmail);
+                String token = extractToken(authHeaders);
 
-                        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                                userDetails,
-                                null,
-                                userDetails.getAuthorities()
-                        );
+                boolean isAuthenticated = false;
 
-                        // Define o Principal na sessão STOMP.
-                        accessor.setUser(authToken);
-                        isAuthenticated = true;
-                        System.out.println("DEBUG STOMP: Usuário autenticado via Interceptor: " + userEmail);
-                    } else {
-                        System.err.println("JWT ERROR STOMP: Token inválido ou expirado. Bloqueando...");
+                if (token != null) {
+                    try {
+                        if (tokenProvider.validateToken(token)) {
+                            String userEmail = tokenProvider.getUserIdFromJWT(token);
+                            UserDetails userDetails = userDetailsService.loadUserByUsername(userEmail);
+
+                            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                                    userDetails,
+                                    null,
+                                    userDetails.getAuthorities()
+                            );
+
+                            accessor.setUser(authToken);
+                            isAuthenticated = true;
+                            System.out.println("DEBUG STOMP: Usuário autenticado via Interceptor: " + userEmail);
+                        } else {
+                            System.err.println("JWT ERROR STOMP: Token inválido ou expirado. Bloqueando...");
+                        }
+                    } catch (Exception e) {
+                        // 3. LOG DE ERRO DE PROCESSAMENTO DE TOKEN (Chave Secreta, Formato JWT, etc.)
+                        System.err.println("JWT FATAL ERROR STOMP: Falha ao processar o token, CAUSA: " + e.getClass().getName() + " - " + e.getMessage());
                     }
-                } catch (Exception e) {
-                    System.err.println("JWT FATAL ERROR STOMP: Falha ao processar o token: " + e.getMessage());
+                } else {
+                    System.out.println("AVISO STOMP: Comando " + command + " sem token válido para processamento.");
                 }
-            } else {
-                System.out.println("AVISO STOMP: Comando " + command + " sem cabeçalho Authorization.");
-            }
 
-            // --- CORREÇÃO CRÍTICA DE SEGURANÇA ---
-            // Se o comando for CONNECT ou SEND E a autenticação falhar (isAuthenticated é falso),
-            // BLOQUEIA a mensagem retornando null.
-            if (!isAuthenticated) {
-                System.err.println("BLOQUEIO STOMP: Falha na autenticação para o comando " + command + ". Retornando null.");
-                return null;
+                // Bloqueia a mensagem se a autenticação falhou
+                if (!isAuthenticated) {
+                    System.err.println("BLOQUEIO STOMP: Falha na autenticação para o comando " + command + ". Retornando null.");
+                    return null;
+                }
             }
+        } catch (Exception e) {
+            // 4. LOG DE ERRO GERAL (Se o Interceptor travar antes de processar o comando)
+            System.err.println("ERRO INESPERADO NO INTERCEPTOR: " + e.getMessage());
+            e.printStackTrace();
+            return null; // Retorna null para bloquear a mensagem em caso de erro grave
         }
 
-        // Se o comando foi CONNECT ou SEND e passou na autenticação, ou se o comando não precisa de autenticação (SUBSCRIBE),
-        // a mensagem é liberada.
         return message;
     }
 
@@ -84,10 +91,10 @@ public class StompJwtChannelInterceptor implements ChannelInterceptor {
     private String extractToken(List<String> authHeaders) {
         if (authHeaders != null && !authHeaders.isEmpty()) {
             String fullTokenHeader = authHeaders.get(0);
-            if (fullTokenHeader.startsWith(BEARER_PREFIX)) {
+            if (fullTokenHeader != null && fullTokenHeader.startsWith(BEARER_PREFIX)) {
                 return fullTokenHeader.substring(BEARER_PREFIX.length());
             } else {
-                System.err.println("JWT ERROR STOMP: Cabeçalho Authorization presente, mas sem prefixo 'Bearer'.");
+                System.err.println("JWT ERROR STOMP: Cabeçalho Authorization presente, mas sem prefixo 'Bearer'. Cabeçalho: " + fullTokenHeader);
             }
         }
         return null;

@@ -2,20 +2,20 @@ package com.tech4um.projectWS.config;
 
 import com.tech4um.projectWS.security.StompJwtChannelInterceptor;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.messaging.simp.config.ChannelRegistration; // Novo import necessário
+import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 
-import lombok.RequiredArgsConstructor; // Novo import (usando Lombok, já que você o possui)
+import lombok.RequiredArgsConstructor;
 
 @Configuration
 @EnableWebSocketMessageBroker // Habilita o WebSocket Message Broker
-@RequiredArgsConstructor // Cria um construtor com todos os campos 'final' (para injetar o Interceptor)
+@RequiredArgsConstructor
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
-    // 1. Injeta o Interceptor STOMP que criamos
+    // 1. Injeta o Interceptor STOMP que criamos (para autenticação JWT das mensagens)
     private final StompJwtChannelInterceptor stompJwtChannelInterceptor;
 
     // Define o endpoint de conexão (handshake) e configura o CORS
@@ -24,7 +24,10 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         // O cliente se conectará a 'ws://localhost:8080/ws'
         registry.addEndpoint("/ws")
                 // Permite conexões de todos os domínios (ajustar em produção)
-                .setAllowedOriginPatterns("*");
+                .setAllowedOriginPatterns("*")
+                // CRÍTICO: Adiciona o fallback para SockJS, que é essencial para evitar
+                // problemas de conexão em ambientes com proxies ou firewalls restritivos.
+                .withSockJS();
     }
 
     // Configura o Message Broker
@@ -41,9 +44,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     }
 
     /**
-     * 2. CRÍTICO: Registra o interceptor no canal de mensagens de entrada do cliente.
-     * Isso faz com que o StompJwtChannelInterceptor seja executado antes do ChatController
-     * para verificar e autenticar o token JWT em cada comando CONNECT ou SEND.
+     * CRÍTICO: Registra o interceptor no canal de mensagens de entrada do cliente.
+     * Isso faz com que o StompJwtChannelInterceptor seja executado para verificar e
+     * autenticar o token JWT na primeira mensagem CONNECT e em cada comando SEND.
      */
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {

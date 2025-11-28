@@ -16,14 +16,14 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity; // Import necessário
-import org.springframework.http.HttpMethod; // Import necessário para referenciar GET, POST, etc.
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.http.HttpMethod;
 
 import java.util.Arrays;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity(securedEnabled = true) // Habilita o @Secured nas classes/métodos
+@EnableMethodSecurity(securedEnabled = true)
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -73,15 +73,15 @@ public class SecurityConfig {
                         // Rotas de autenticação são públicas
                         .requestMatchers("/api/auth/**").permitAll()
 
-                        // CORREÇÃO: Permite acesso público a todos os métodos GET nos caminhos /api/forums
-                        // Isso inclui: GET /api/forums, GET /api/forums/{id}, GET /api/forums/{id}/messages
+                        // Permite acesso irrestrito ao endpoint do WebSocket e todos os seus sub-caminhos (SockJS)
+                        // O Interceptor JWT STOMP fará a autenticação neste nível.
+                        .requestMatchers("/ws/**").permitAll() // <--- CRÍTICO: Rota WebSocket
+
+                        // Permite acesso público a todos os métodos GET nos caminhos /api/forums
                         .requestMatchers(HttpMethod.GET, "/api/forums", "/api/forums/**").permitAll()
 
-                        // CRÍTICO: Rota /api/users requer ROLE_USER ou ROLE_ADMIN
+                        // Rota /api/users requer ROLE_USER ou ROLE_ADMIN
                         .requestMatchers("/api/users/**").hasAnyRole("USER", "ADMIN")
-
-                        // Rotas WebSocket
-                        .requestMatchers("/ws/**").permitAll()
 
                         // Todas as outras rotas exigem autenticação
                         .anyRequest().authenticated())
